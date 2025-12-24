@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:photobooth_marri/core/photobooth_screen.dart';
+import 'package:photobooth_marri/core/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +11,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, title: 'Photobooth', theme: ThemeData.dark(), home: const PhotoboothScreen());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Photobooth',
+      theme: ThemeData.dark(),
+      home: const HomeScreen(),
+    );
   }
 }
