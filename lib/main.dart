@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:photobooth_marri/core/home_screen.dart';
+import 'package:photobooth_marri/core/web/webview_photobooth.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Photobooth',
       theme: ThemeData.dark(),
-      home: const HomeScreen(),
+      home: const WebviewPhotobooth(),
     );
   }
 }
