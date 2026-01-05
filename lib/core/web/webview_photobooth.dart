@@ -9,6 +9,7 @@ import 'package:photobooth_marri/core/web/camera_preview.dart';
 import 'package:photobooth_marri/core/web/view_photobooth/view_1x1.dart';
 import 'package:photobooth_marri/core/web/view_photobooth/view_1x2.dart';
 import 'package:photobooth_marri/core/web/view_photobooth/view_2x4.dart';
+import 'package:photobooth_marri/core/web/widget/count_down_time.dart';
 
 enum ViewType {
   oneByOne(1, 'assets/images/1x1.png'),
@@ -74,8 +75,8 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
     }
   }
 
-  Future<void> takePhoto() async {
-    if (currentIndex >= viewType.imageCount || currentIndex < 0) return;
+  Future<bool> takePhoto() async {
+    if (currentIndex >= viewType.imageCount || currentIndex < 0) return false;
     try {
       Uint8List? bytes;
 
@@ -94,28 +95,32 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
             const SnackBar(content: Text('Không thể chụp ảnh')),
           );
         }
-        return;
+        return false;
       }
 
+      bool value = false;
       // Lưu ảnh vào state
       setState(() {
         photos[currentIndex] = bytes;
         if (currentIndex < viewType.imageCount - 1) {
           currentIndex = photos.indexWhere((photo) => photo == null);
+          value = true;
         } else {
-          Future.delayed(const Duration(seconds: 1), () {
-            // Đã chụp đủ 6 ảnh - hiển thị dialog photobooth
-            capturePhotobooth();
-          });
+          // Đã chụp đủ 6 ảnh - hiển thị dialog photobooth
+          capturePhotobooth();
+
+          value = false;
           currentIndex++;
         }
       });
+      return value;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi chụp ảnh: $e')),
         );
       }
+      return false;
     }
   }
 
@@ -288,7 +293,9 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
                                 if (isSelected)
                                   Positioned.fill(
                                     child: GestureDetector(
-                                      onTap: takePhoto,
+                                      onTap: () {
+                                        _startCountdownAndCapture();
+                                      },
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
@@ -317,6 +324,12 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
                       }).toList(),
                     ),
                   ),
+
+                  // CountdownScreen(
+                  //   onFinish: () {
+                  //     takePhoto();
+                  //   },
+                  // ),
                 ],
               ),
             ),
@@ -406,6 +419,27 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _startCountdownAndCapture() {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        opaque: false, // overlay lên camera
+        pageBuilder: (_, __, ___) => CountdownOverlay(
+          onFinish: () async {
+            takePhoto().then((value) {
+              if (value == true) {
+                Navigator.pop(context); // tắt countdown
+                _startCountdownAndCapture();
+              } else {
+                Navigator.pop(context); // tắt countdown
+              }
+            });
+          },
+        ),
       ),
     );
   }
