@@ -6,8 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:photobooth_marri/core/web/photo_cell_web.dart';
 import 'package:photobooth_marri/core/web/camera_preview.dart';
+import 'package:photobooth_marri/core/web/view_photobooth/view_1x1.dart';
+import 'package:photobooth_marri/core/web/view_photobooth/view_1x2.dart';
+import 'package:photobooth_marri/core/web/view_photobooth/view_2x4.dart';
 
-const int maxPhotos = 8;
+enum ViewType {
+  oneByOne(1, 'assets/images/1x1.png'),
+  oneByTwo(2, 'assets/images/1x2.png'),
+  twoByFour(8, 'assets/images/2x4.png');
+
+  const ViewType(this.imageCount, this.previewImage);
+  final String previewImage;
+  final int imageCount;
+}
 
 class WebviewPhotobooth extends StatefulWidget {
   const WebviewPhotobooth({super.key});
@@ -22,11 +33,12 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
   final GlobalKey<CameraPreviewWebState> _cameraPreviewKey = GlobalKey<CameraPreviewWebState>();
 
   int currentIndex = 0;
-  List<Uint8List?> photos = List.filled(maxPhotos, null);
+  List<Uint8List?> photos = List.filled(8, null);
   Uint8List? photoboothImage; // Ảnh photobooth đã tạo
 
   final GlobalKey repaintKey = GlobalKey();
 
+  ViewType viewType = ViewType.twoByFour;
   @override
   void initState() {
     super.initState();
@@ -63,6 +75,7 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
   }
 
   Future<void> takePhoto() async {
+    if (currentIndex >= viewType.imageCount || currentIndex < 0) return;
     try {
       Uint8List? bytes;
 
@@ -87,14 +100,14 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
       // Lưu ảnh vào state
       setState(() {
         photos[currentIndex] = bytes;
-
-        if (currentIndex < maxPhotos - 1) {
-          currentIndex = photos.indexWhere((photo) => photo == null) != -1 ? photos.indexWhere((photo) => photo == null) : currentIndex + 1;
+        if (currentIndex < viewType.imageCount - 1) {
+          currentIndex = photos.indexWhere((photo) => photo == null);
         } else {
           Future.delayed(const Duration(seconds: 1), () {
             // Đã chụp đủ 6 ảnh - hiển thị dialog photobooth
             capturePhotobooth();
           });
+          currentIndex++;
         }
       });
     } catch (e) {
@@ -148,7 +161,7 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
 
   void resetPhotos() {
     setState(() {
-      photos = List.filled(maxPhotos, null);
+      photos = List.filled(8, null);
       currentIndex = 0;
       photoboothImage = null;
     });
@@ -208,35 +221,100 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
               ),
               child: Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CameraPreviewWeb(
-                      key: _cameraPreviewKey,
-                      mirror: true,
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CameraPreviewWeb(
+                        key: _cameraPreviewKey,
+                        mirror: true,
+                      ),
                     ),
                   ),
+                  // List viewType với nút chụp ở vị trí đang chọn
                   Container(
                     padding: const EdgeInsets.only(bottom: 20),
                     alignment: Alignment.bottomCenter,
-                    child: GestureDetector(
-                      onTap: takePhoto,
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFFF1493),
-                          border: Border.all(color: Colors.white, width: 4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFF1493).withOpacity(0.4),
-                              blurRadius: 20,
-                              spreadRadius: 5,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: ViewType.values.map((type) {
+                        final isSelected = viewType == type;
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              viewType = type;
+                              // Reset photos khi đổi viewType
+                              photos = List.filled(8, null);
+                              currentIndex = 0;
+                              photoboothImage = null;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Preview image của viewType
+                                Container(
+                                  width: 70,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.grey[800],
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFFFF1493) : Colors.grey[600]!,
+                                      width: isSelected ? 3 : 2,
+                                    ),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: const Color(0xFFFF1493).withOpacity(0.5),
+                                              blurRadius: 12,
+                                              spreadRadius: 3,
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      type.previewImage,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                                // Nút chụp chỉ hiển thị ở viewType đang chọn
+                                if (isSelected)
+                                  Positioned.fill(
+                                    child: GestureDetector(
+                                      onTap: takePhoto,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFFFF1493).withOpacity(0.8),
+                                          border: Border.all(color: Colors.white, width: 3),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFFFF1493).withOpacity(0.6),
+                                              blurRadius: 15,
+                                              spreadRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Image.asset(
+                                          type.previewImage,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
@@ -252,7 +330,7 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Ảnh đã chụp (${photos.where((p) => p != null).length}/$maxPhotos)',
+                  'Ảnh đã chụp (${photos.where((p) => p != null).length}/${viewType.imageCount})',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -268,7 +346,7 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
                       mainAxisSpacing: 8,
                       childAspectRatio: 1.5,
                     ),
-                    itemCount: maxPhotos,
+                    itemCount: viewType.imageCount,
                     itemBuilder: (context, index) {
                       return Stack(
                         children: [
@@ -338,31 +416,17 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          RepaintBoundary(
-            key: repaintKey,
-            child: AspectRatio(
-              aspectRatio: 2 / 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Stack(
-                  children: [
-                    // Grid ảnh
-                    Expanded(
-                      child: _buildPhotoGrid(),
-                    ),
-                    // Khung ảnh
-                    Image.asset(
-                      'assets/images/frame_2x3_marry.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          Builder(builder: (context) {
+            switch (viewType) {
+              case ViewType.oneByOne:
+                return View1x1(photos: photos, repaintKey: repaintKey);
+              case ViewType.oneByTwo:
+                return View1x2(photos: photos, repaintKey: repaintKey);
+              case ViewType.twoByFour:
+                return View2x4(photos: photos, repaintKey: repaintKey);
+            }
+          }),
+
           const SizedBox(height: 16),
           // Nút Lưu ảnh và Chụp lại
           Row(
@@ -422,28 +486,28 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
     );
   }
 
-  Widget _buildPhotoGrid() {
-    return Container(
-      alignment: Alignment.topCenter,
-      decoration: BoxDecoration(
-        color: Colors.red,
-      ),
-      child: GridView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 159 / 105,
-          crossAxisSpacing: 0,
-          mainAxisSpacing: 0,
-        ),
-        itemCount: 8,
-        itemBuilder: (context, index) {
-          return PhotoCellWeb(
-            isActive: index == currentIndex,
-            photoBytes: photos[index],
-          );
-        },
-      ),
-    );
-  }
+  // Widget _buildPhotoGrid() {
+  //   return Container(
+  //     alignment: Alignment.topCenter,
+  //     decoration: BoxDecoration(
+  //       color: Colors.red,
+  //     ),
+  //     child: GridView.builder(
+  //       physics: const NeverScrollableScrollPhysics(),
+  //       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+  //         crossAxisCount: 2,
+  //         childAspectRatio: 159 / 105,
+  //         crossAxisSpacing: 0,
+  //         mainAxisSpacing: 0,
+  //       ),
+  //       itemCount: 8,
+  //       itemBuilder: (context, index) {
+  //         return PhotoCellWeb(
+  //           isActive: index == currentIndex,
+  //           photoBytes: photos[index],
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 }
