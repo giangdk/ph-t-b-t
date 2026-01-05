@@ -18,7 +18,7 @@ class _View2x4State extends State<View2x4> {
     return RepaintBoundary(
       key: widget.repaintKey,
       child: AspectRatio(
-        aspectRatio: 2 / 3,
+        aspectRatio: 25 / 37,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.grey[900],
@@ -46,15 +46,15 @@ class _View2x4State extends State<View2x4> {
     int currentIndex = widget.photos.indexWhere((photo) => photo != null);
     return Container(
       alignment: Alignment.topCenter,
-      padding: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
         color: Colors.red,
       ),
       child: GridView.builder(
+        padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 159 / 105,
+          childAspectRatio: 3 / 2,
           crossAxisSpacing: 0,
           mainAxisSpacing: 0,
         ),

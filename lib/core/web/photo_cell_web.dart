@@ -16,7 +16,6 @@ class PhotoCellWeb extends StatelessWidget {
     // Ô đã chụp
     if (photoBytes != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
         child: Image.memory(
           photoBytes!,
           fit: BoxFit.cover,
@@ -29,7 +28,6 @@ class PhotoCellWeb extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: const Color(0xFFFF1493),
             width: 2,
@@ -49,7 +47,6 @@ class PhotoCellWeb extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(8),
       ),
     );
   }

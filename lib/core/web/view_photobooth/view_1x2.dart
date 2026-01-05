@@ -18,7 +18,7 @@ class _View1x2State extends State<View1x2> {
     return RepaintBoundary(
       key: widget.repaintKey,
       child: AspectRatio(
-        aspectRatio: 2 / 3,
+        aspectRatio: 25 / 37,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.grey[900],
