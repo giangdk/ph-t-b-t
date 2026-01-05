@@ -51,6 +51,7 @@ class _View1x1State extends State<View1x1> {
       ),
       child: GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(top: 12, left: 20, right: 20),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 1,
           childAspectRatio: 2 / 3,
