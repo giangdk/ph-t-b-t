@@ -93,7 +93,16 @@ class CameraPreviewWebState extends State<CameraPreviewWeb> {
       final context = canvas.context2D;
 
       // Vẽ frame từ video vào canvas
-      context.drawImage(_videoElement!, 0, 0);
+      if (widget.mirror) {
+        // Flip horizontally so captured bytes match mirrored preview
+        context.save();
+        context.translate(canvas.width!.toDouble(), 0);
+        context.scale(-1, 1);
+        context.drawImage(_videoElement!, 0, 0);
+        context.restore();
+      } else {
+        context.drawImage(_videoElement!, 0, 0);
+      }
 
       // Chuyển canvas thành blob
       final blob = await canvas.toBlob('image/png');

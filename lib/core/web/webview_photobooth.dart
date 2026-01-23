@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:html' as html;
@@ -99,20 +100,27 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
       }
 
       bool value = false;
+      final int indexToUpdate = currentIndex;
+      final bool wasLast = currentIndex == viewType.imageCount - 1;
+
       // Lưu ảnh vào state
       setState(() {
-        photos[currentIndex] = bytes;
-        if (currentIndex < viewType.imageCount - 1) {
+        photos[indexToUpdate] = bytes;
+        if (!wasLast) {
           currentIndex = photos.indexWhere((photo) => photo == null);
           value = true;
         } else {
-          // Đã chụp đủ 6 ảnh - hiển thị dialog photobooth
-          capturePhotobooth();
-
+          // Đã chụp đủ ảnh, sẽ tạo photobooth sau khi frame hiện thị
           value = false;
           currentIndex++;
         }
       });
+
+      // Nếu vừa chụp ảnh cuối cùng, chờ các Image.memory được decode + frame
+      if (wasLast) {
+        _ensureImagesReadyAndCapture();
+      }
+
       return value;
     } catch (e) {
       if (mounted) {
@@ -151,6 +159,49 @@ class _WebviewPhotoboothState extends State<WebviewPhotobooth> {
           SnackBar(content: Text('Lỗi tạo photobooth: $e')),
         );
       }
+    }
+  }
+
+  // Wait until MemoryImage widgets are decoded and a frame is rendered, then capture
+  Future<void> _ensureImagesReadyAndCapture() async {
+    try {
+      final int count = viewType.imageCount;
+
+      for (int i = 0; i < count; i++) {
+        final bytes = photos[i];
+        if (bytes == null) continue;
+
+        final provider = MemoryImage(bytes);
+        final ImageStream stream = provider.resolve(const ImageConfiguration());
+        final completer = Completer<void>();
+        ImageStreamListener? listener;
+        listener = ImageStreamListener((ImageInfo info, bool syncCall) {
+          completer.complete();
+          stream.removeListener(listener!);
+        }, onError: (dynamic _, StackTrace? __) {
+          completer.complete();
+          stream.removeListener(listener!);
+        });
+        stream.addListener(listener);
+
+        // Wait up to 2 seconds per image
+        try {
+          await completer.future.timeout(const Duration(seconds: 2));
+        } catch (_) {
+          // proceed even if timeout
+        }
+      }
+
+      // Give one frame to render
+      await Future.delayed(const Duration(milliseconds: 50));
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await capturePhotobooth();
+      });
+    } catch (e) {
+      // ignore and still try to capture
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await capturePhotobooth();
+      });
     }
   }
 
